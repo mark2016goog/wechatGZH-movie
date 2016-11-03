@@ -1,0 +1,122 @@
+extends ../wechat
+
+block content
+	h1 Click title,start recording and translate
+	p#tip
+	p#title
+	div#director
+	div#year
+	div#poster
+	script.
+		//接收params
+		wx.config({
+		    debug: false, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+		    appId: 'wx2a3b325b5c82dd4f', // 必填，公众号的唯一标识
+		    timestamp: '#{timestamp}', // 必填，生成签名的时间戳
+		    nonceStr: '#{noncestr}', // 必填，生成签名的随机串
+		    signature: '#{signature}',// 必填，签名，见附录1
+		    // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
+		    jsApiList: [
+				'startRecord',
+				'stopRecord',
+				'onVoiceRecordEnd',
+				'translateVoice'
+		    ] 
+		});
+		//判断当前客户端版本是否支持指定JS接口
+		wx.ready(function(){
+			wx.checkJsApi({
+			    jsApiList: ['onVoiceRecordEnd'], // 需要检测的JS接口列表，所有JS接口列表见附录2,
+			    success: function(res) {
+			    	console.log('59:res:',res)
+			        // 以键值对的形式返回，可用的api值true，不可用为false
+			        // 如：{"checkResult":{"chooseImage":true},"errMsg":"checkJsApi:ok"}
+			    }
+			});
+			//获取“分享给朋友”按钮点击状态及自定义分享内容接口
+			var shareContent={}
+			var slides
+			var isRecording=false
+			$('#poster').on('tap',function(){
+				wx.previewImage(slides)
+			})
+			//点击标题
+			$('h1').on('tap',function(){
+				$('#tip').html('<h1>开始录音...</h1>')
+				//如果当前并不是在录制中，那么允许进行录音
+				if(!isRecording){
+					isRecording=true
+					//开启录音
+					
+					wx.startRecord({
+						cancel:function(){
+							window.alert('用户主动拒绝录音')
+						}
+					})
+					return
+				}
+				//表示当前正在录音中,可以停止录音
+				isRecording=false
+				wx.stopRecord({
+					success:function(res){
+						var localId=res.localId
+						//识别音频并返回识别结果接口
+						wx.translateVoice({
+						   localId: localId, // 需要识别的音频的本地Id，由录音相关接口获得
+						    isShowProgressTips: 1, // 默认为1，显示进度提示
+						    success: function (res) {
+						    	var result=res.translateResult
+						        window.alert(res.translateResult); // 语音识别的结果
+
+						    	
+						    	$.ajax({
+									type:'get',
+									url:'https://api.douban.com/v2/movie/search?q='+result,
+									dataType:'jsonp',
+									jsonp:'callback',
+									success:function(data){
+										var subject=data.subjects[0]
+										$('#tip').html('<h1>识别结果：'+JSON.stringify(subject)+'</h1>')
+										$('#title').html(subject.title)
+										$('#year').html(subject.year)
+										$('#director').html(subject.director[0].name)
+										$('#poster').html('<img src="'+subject.images.large+'" />')
+										
+										shareContent={
+											title: 'subject.title', // 分享标题
+										    desc: '搜寻到结果：', // 分享描述
+										    link: 'https://www.baidu.com/', // 分享链接
+										    imgUrl: 'subject.images.large', // 分享图标
+										    type: 'link', // 分享类型,music、video或link，不填默认为link
+										    dataUrl: '', // 如果type是music或video，则要提供数据链接，默认为空
+										    success: function () { 
+										        window.alert('分享成功！')
+										    },
+										    cancel: function () { 
+										        window.alert('分享失败！')
+										    }
+										}
+										slides={
+											currents:subject.images.large,
+											urls:[subject.images.large]
+										}
+										data.subjects.forEach(function(item){
+											slides.urls.push(item.images.large)
+										})
+										//预览图片
+										wx.previewImage({
+										    current: '', // 当前显示图片的http链接
+										    urls: [] // 需要预览的图片http链接列表
+										});
+										wx.onMenuShareAppMessage(shareContent)
+									},
+									error:function(XMLHttpRequest,err){
+										$('#tip').html('<p>识别失败，失败原因：'+error+'，请重新录音</p>')
+									}
+						    	})
+						    }
+						});
+					}
+				})
+			})
+		});

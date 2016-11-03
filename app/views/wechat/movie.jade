@@ -1,0 +1,48 @@
+extends ../wechat
+
+block content
+	style.
+		.hd{
+			padding:2em 0;
+		}
+		page_title{
+			text-align:center;
+			font-size:30px;
+			color:#3cc51f;
+			font-weight:400;
+			margin:0 15%;
+		}
+
+	.page
+		.hd
+			h1.page_title= movie.title
+		.bd
+			.weui_cells_title 电影介绍
+			.weui_cells
+				.weui_cell
+					.weui_cell_bd.weui_cell_primary
+						p 电影名字
+					.weui_cell_ft= movie.title
+				.weui_cell
+					.weui_cell_bd.weui_cell_primary
+						p 导演
+					.weui_cell_ft= movie.director
+				.weui_cell
+					.weui_cell_bd.weui_cell_primary
+						p 国家
+					.weui_cell_ft= movie.country
+				.weui_cell
+					.weui_cell_bd.weui_cell_primary
+						p 语言
+					.weui_cell_ft= movie.language
+				.weui_cell
+					.weui_cell_bd.weui_cell_primary
+						p 上映年份
+					.weui_cell_ft= movie.year
+			.weui_cell
+				section
+					img(src="#{movie.poaster}",style="weidth:100%")
+				.weui_article
+					section
+						p= movie.summary
+					
